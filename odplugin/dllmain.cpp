@@ -50,11 +50,11 @@ extern "C" __declspec(dllexport) cdecl int  ODBG_Pluginmenu(int origin, TCHAR da
 
 	if (origin == PM_MEMORY || origin == PM_CPUDUMP /*|| origin == PM_CPUSTACK || origin == PM_CPUREGS*/)
 	{
-		strcpy(data, "0&zzz菜单子菜单一,1&zzz菜单子菜单二");
+		strcpy(data, "0&复制指定字节数");
 	}
 
 	// 反汇编窗口菜单
-	if (origin == PM_DISASM )
+	if (origin == PM_DISASM)
 	{
 		strcpy(data, "鼠标右键主菜单{0&修改E8CALL函数名称,1&鼠标右键子菜单二{2&二级菜单1,3&二级菜单2}}");
 	}
@@ -110,6 +110,29 @@ VOID renameCall(PVOID item)
 	}
 }
 
+VOID selectData(PVOID item)
+{
+	t_dump* ptdump = (t_dump*)item;
+	if (_Gettext("请输入需要选择的长度（十六进制）", g_buffer, 0, NM_NONAME, 0) != -1)
+	{
+		DWORD t_sizeToSelect = 0;
+		int len = strlen(g_buffer);
+		for (int i = 0; i < len; i++)
+		{
+			if (isdigit(g_buffer[i])) continue;
+			if (g_buffer[i] - 'a' >= 0 && g_buffer[i] - 'f' <= 'a' - 'f') continue;
+			// 如果输入非法，直接返回
+			MessageBox(g_hOllyDbg, "转换出错！", "输入的字符非法！", 0);
+			return;
+		}
+		sscanf(g_buffer, "%x", &t_sizeToSelect);
+		// 修改选择长度，sel0是开始位置，sel1是结束位置
+		ptdump->sel1 = ptdump->sel0 + t_sizeToSelect;
+		// 刷新表格
+		_Tablefunction(&ptdump->table, ptdump->table.hw, WM_USER_CHALL, NULL, NULL);
+	}
+}
+
 //************************************
 // Method:菜单项被点击执行函数
 // Description:所有的菜单项被点击都会执行到这个函数
@@ -126,6 +149,16 @@ extern "C" __declspec(dllexport) cdecl void ODBG_Pluginaction(int origin, int ac
 		{
 		}
 	}
+
+	// 如果是在内存窗口
+	if (origin == PM_CPUDUMP)
+	{
+		if (action == 0)
+		{
+			selectData(item);
+		}
+	}
+
 	//如果是在反汇编窗口点击
 	if (origin == PM_DISASM)
 	{
@@ -141,3 +174,4 @@ extern "C" __declspec(dllexport) cdecl void ODBG_Pluginaction(int origin, int ac
 		}
 	}
 }
+
