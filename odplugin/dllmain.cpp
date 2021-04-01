@@ -150,7 +150,7 @@ VOID selectData(PVOID item)
 		for (int i = 0; i < len; i++)
 		{
 			if (isdigit(g_buffer[i])) continue;
-			if (g_buffer[i] - 'a' >= 0 && g_buffer[i] - 'f' <= 'a' - 'f') continue;
+			if (g_buffer[i] - 'a' >= 0 && g_buffer[i] - 'f' <= 'f' - 'a') continue;
 			// 如果输入非法，直接返回
 			MessageBox(g_hOllyDbg, "转换出错！", "输入的字符非法！", 0);
 			return;
