@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "hSelect.hpp"
 
 //OD主界面句柄
 HWND g_hOllyDbg;
@@ -50,7 +51,7 @@ extern "C" __declspec(dllexport) cdecl int  ODBG_Pluginmenu(int origin, TCHAR da
 
 	if (origin == PM_MEMORY || origin == PM_CPUDUMP /*|| origin == PM_CPUSTACK || origin == PM_CPUREGS*/)
 	{
-		strcpy(data, "0&复制指定字节数");
+		strcpy(data, "0&复制指定字节数,1&将选中的数据保存到文件");
 	}
 
 	// 反汇编窗口菜单
@@ -110,6 +111,35 @@ VOID renameCall(PVOID item)
 	}
 }
 
+VOID saveToFile(PVOID item)
+{
+	t_dump* ptdump = (t_dump*)item;
+	selFile t(g_hOllyDbg);
+	const char* t_filepath = t.save();
+	FILE* fp = fopen((PCHAR)t_filepath, "w");
+
+	// 如果没有输入直接返回
+	if (!t_filepath)
+	{
+		MessageBox(0, 0, 0, 0);
+		return;
+	}
+	_Addtolist((0), 1, (char*)t_filepath);
+
+	// 计算需要保存的长度
+	DWORD sizeToSave = ptdump->sel1 - ptdump->sel0;
+	PVOID t_buffer = malloc(sizeToSave);
+	// 读取数据
+	_Readmemory(t_buffer, ptdump->sel0, sizeToSave, MM_SILENT);
+	// 写入
+	fwrite(t_buffer, sizeToSave, 1, fp);
+	// 提示保存成功以及保存的字节数
+	sprintf(g_buffer, "成功往%s写入%d字节数据\n", t_filepath, sizeToSave);
+	MessageBox(g_hOllyDbg, g_buffer, "保存成功", 0);
+	fflush(fp);
+	fclose(fp); // 关闭文件指针
+}
+
 VOID selectData(PVOID item)
 {
 	t_dump* ptdump = (t_dump*)item;
@@ -156,6 +186,10 @@ extern "C" __declspec(dllexport) cdecl void ODBG_Pluginaction(int origin, int ac
 		if (action == 0)
 		{
 			selectData(item);
+		}
+		else if (action == 1)
+		{
+			saveToFile(item);
 		}
 	}
 
